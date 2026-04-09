@@ -1,0 +1,460 @@
+
+postgres=#  SELECT
+    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') as total_files,
+    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as replayed_since_redo,
+    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') -
+    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as files_to_remove_at_promote;
+ total_files | replayed_since_redo | files_to_remove_at_promote
+-------------+---------------------+----------------------------
+          39 |                   1 |                         38
+(1 row)
+
+postgres=# alter system set max_wal_size='160MB';
+ALTER SYSTEM
+postgres=# select pg_reload_conf();
+ pg_reload_conf
+----------------
+ t
+(1 row)
+
+
+postgres=# \q
+[postgres@lab03 log]$ for i in $(seq 1 35); do
+    psql -p 5432 -c "SELECT pg_logical_emit_message(false, 'test', repeat('x', 1000)); SELECT pg_switch_wal();"
+done
+ pg_logical_emit_message
+-------------------------
+ 3/C000488
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/C0004A0
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/D000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/D000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/E000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/E000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/F000488
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/F0004A0
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/10000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/10000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/11000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/11000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/12000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/12000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/13000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/13000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/14000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/14000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/15000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/15000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/16000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/16000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/17000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/17000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/18000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/18000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/19000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/19000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/1A000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/1A000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/1B000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/1B000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/1C000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/1C000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/1D000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/1D000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/1E000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/1E000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/1F000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/1F000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/20000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/20000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/21000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/21000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/22000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/22000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/23000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/23000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/24000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/24000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/25000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/25000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/26000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/26000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/27000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/27000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/28000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/28000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/29000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/29000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/2A000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/2A000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/2B000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/2B000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/2C000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/2C000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/2D000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/2D000468
+(1 row)
+
+ pg_logical_emit_message
+-------------------------
+ 3/2E000450
+(1 row)
+
+ pg_switch_wal
+---------------
+ 3/2E000468
+(1 row)
+
+[postgres@lab03 log]$ psql -p 5433
+psql (18.1)
+Type "help" for help.
+
+postgres=#  SELECT
+    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') as total_files,
+    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as replayed_since_redo,
+    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') -
+    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as files_to_remove_at_promote;
+ total_files | replayed_since_redo | files_to_remove_at_promote
+-------------+---------------------+----------------------------
+          38 |                  36 |                          2
+(1 row)
+
+postgres=# checkpoint;
+CHECKPOINT
+postgres=#  \! psql -c "checkpoint" -p 5432
+CHECKPOINT
+postgres=# checkpoint;
+CHECKPOINT
+postgres=#  SELECT
+    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') as total_files,
+    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as replayed_since_redo,
+    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') -
+    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as files_to_remove_at_promote;
+ total_files | replayed_since_redo | files_to_remove_at_promote
+-------------+---------------------+----------------------------
+          10 |                   1 |                          9
+(1 row)
+
+postgres=#
+
+
+2026-04-09 19:01:37 IST [23034]: user=postgres,db=postgres,app=psql,client=[local] LOG:  disconnection: session time: 0:01:27.584 user=postgres database=postgres host=[local]
+2026-04-09 19:01:37 IST [22047]: user=,db=,app=,client= DEBUG:  releasing pm child slot 1
+2026-04-09 19:01:37 IST [22047]: user=,db=,app=,client= DEBUG:  client backend (PID 23034) exited with exit code 0
+2026-04-09 19:01:37 IST [22056]: user=,db=,app=,client= DEBUG:  sending write 3/2F000168 flush 3/2F000168 apply 3/2F000168 (reply requested)
+2026-04-09 19:01:37 IST [22056]: user=,db=,app=,client= DEBUG:  sendtime 2026-04-09 19:01:37.502673+05:30 receipttime 2026-04-09 19:01:37.502763+05:30 replication apply delay 0 ms transfer latency 1 ms
+2026-04-09 19:01:47 IST [22056]: user=,db=,app=,client= DEBUG:  sending write 3/2F000168 flush 3/2F000168 apply 3/2F000168
+2026-04-09 19:01:55 IST [22047]: user=,db=,app=,client= DEBUG:  postmaster received pmsignal signal
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= LOG:  received promote request
+2026-04-09 19:01:55 IST [22056]: user=,db=,app=,client= FATAL:  terminating walreceiver process due to administrator command
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= DEBUG:  switched WAL source from stream to archive after failure
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= LOG:  invalid resource manager ID 95 at 3/2F000168
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= LOG:  redo done at 3/2F000130 system usage: CPU: user: 4.70 s, system: 4.63 s, elapsed: 1028.52 s
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= LOG:  last completed transaction was at log time 2026-04-09 18:56:42.558094+05:30
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= DEBUG:  resetting unlogged relations: cleanup 0 init 1
+2026-04-09 19:01:55 IST [22047]: user=,db=,app=,client= DEBUG:  releasing pm child slot 283
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= LOG:  selected new timeline ID: 2
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= DEBUG:  updated min recovery point to 3/2F000168 on timeline 1
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= DEBUG:  could not remove file "pg_wal/00000002000000030000002F": No such file or directory
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= LOG:  archive recovery complete
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= DEBUG:  MultiXactId wrap limit is 2147483648, limited by database with OID 1
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= DEBUG:  MultiXact member stop limit is now 4294914944 based on MultiXact 1
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= DEBUG:  attempting to remove WAL segments newer than log file 00000002000000030000002F
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= DEBUG:  recycled write-ahead log file "000000010000000300000030"
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= DEBUG:  recycled write-ahead log file "000000010000000300000031"
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= DEBUG:  recycled write-ahead log file "000000010000000300000032"
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= DEBUG:  recycled write-ahead log file "000000010000000300000033"
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= DEBUG:  recycled write-ahead log file "000000010000000300000034"
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= DEBUG:  recycled write-ahead log file "000000010000000300000035"
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= DEBUG:  recycled write-ahead log file "000000010000000300000036"
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= DEBUG:  recycled write-ahead log file "000000010000000300000037"
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= DEBUG:  recycled write-ahead log file "000000010000000300000038"
+2026-04-09 19:01:55 IST [22054]: user=,db=,app=,client= DEBUG:  release all standby locks
+2026-04-09 19:01:55 IST [22052]: user=,db=,app=,client= LOG:  checkpoint starting: force
+2026-04-09 19:01:55 IST [22052]: user=,db=,app=,client= DEBUG:  performing replication slot checkpoint
+2026-04-09 19:01:55 IST [22052]: user=,db=,app=,client= DEBUG:  checkpoint sync: number=1 file=pg_xact/0000 time=2.295 ms
+2026-04-09 19:01:55 IST [22052]: user=,db=,app=,client= DEBUG:  checkpoint sync: number=2 file=pg_multixact/offsets/0000 time=0.643 ms
+2026-04-09 19:01:55 IST [22052]: user=,db=,app=,client= DEBUG:  snapshot of 0+0 running transaction ids (lsn 3/2F0001F8 oldest xid 2779 latest complete 2778 next xid 2779)
+2026-04-09 19:01:55 IST [22052]: user=,db=,app=,client= DEBUG:  attempting to remove WAL segments older than log file 00000000000000030000002E
+2026-04-09 19:01:55 IST [22052]: user=,db=,app=,client= DEBUG:  SlruScanDirectory invoking callback on pg_subtrans/0000
+2026-04-09 19:01:55 IST [22052]: user=,db=,app=,client= LOG:  checkpoint complete: wrote 0 buffers (0.0%), wrote 2 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.001 s, sync=0.003 s, total=0.006 s; sync files=2, longest=0.003 s, average=0.002 s; distance=0 kB, estimate=1336660 kB; lsn=3/2F0001F8, redo lsn=3/2F0001A0
+2026-04-09 19:01:55 IST [22047]: user=,db=,app=,client= DEBUG:  releasing pm child slot 282
+2026-04-09 19:01:55 IST [22047]: user=,db=,app=,client= DEBUG:  updating PMState from PM_HOT_STANDBY to PM_RUN
+2026-04-09 19:01:55 IST [22047]: user=,db=,app=,client= LOG:  database system is ready to accept connections
+2026-04-09 19:01:55 IST [22047]: user=,db=,app=,client= DEBUG:  assigned pm child slot 285 for wal_writer
+2026-04-09 19:01:55 IST [22047]: user=,db=,app=,client= DEBUG:  assigned pm child slot 221 for autovacuum launcher
+2026-04-09 19:01:55 IST [23122]: user=,db=,app=,client= DEBUG:  autovacuum launcher started
+2026-04-09 19:01:55 IST [22047]: user=,db=,app=,client= DEBUG:  assigned pm child slot 247 for archiver
+2026-04-09 19:01:55 IST [22047]: user=,db=,app=,client= DEBUG:  assigned pm child slot 238 for bgworker
+2026-04-09 19:01:55 IST [22047]: user=,db=,app=,client= DEBUG:  starting background worker process "logical replication launcher"
+2026-04-09 19:01:55 IST [23125]: user=,db=,app=,client= DEBUG:  logical replication launcher started
+2026-04-09 19:01:55 IST [23123]: user=,db=,app=,client= DEBUG:  archived write-ahead log file "00000002.history"
+2026-04-09 19:01:56 IST [23123]: user=,db=,app=,client= DEBUG:  archived write-ahead log file "00000001000000030000002F.partial"
+2026-04-09 19:01:56 IST [22053]: user=,db=,app=,client= DEBUG:  snapshot of 0+0 running transaction ids (lsn 3/2F0002A8 oldest xid 2779 latest complete 2778 next xid 2779)
