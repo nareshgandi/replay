@@ -1,0 +1,99 @@
+
+[postgres@lab03 log]$ psql -p 5433
+psql (18.1)
+Type "help" for help.
+
+postgres=#  SELECT
+    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') as total_files,
+    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as replayed_since_redo,
+    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') -
+    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as files_to_remove_at_promote;
+ total_files | replayed_since_redo | files_to_remove_at_promote
+-------------+---------------------+----------------------------
+         170 |                   9 |                        161
+(1 row)
+
+postgres=#  show max_wal_size;
+ max_wal_size
+--------------
+ 160MB
+(1 row)
+
+postgres=#  SELECT
+    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') as total_files,
+    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as replayed_since_redo,
+    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') -
+    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as files_to_remove_at_promote;
+ total_files | replayed_since_redo | files_to_remove_at_promote
+-------------+---------------------+----------------------------
+         170 |                   9 |                        161
+(1 row)
+
+postgres=# checkpoint;
+CHECKPOINT
+postgres=# \! psql -c "checkpoint" -p 5432
+CHECKPOINT
+postgres=#  SELECT
+    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') as total_files,
+    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as replayed_since_redo,
+    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') -
+    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as files_to_remove_at_promote;
+ total_files | replayed_since_redo | files_to_remove_at_promote
+-------------+---------------------+----------------------------
+         170 |                   9 |                        161
+(1 row)
+
+postgres=#  SELECT
+    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') as total_files,
+    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as replayed_since_redo,
+    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') -
+    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as files_to_remove_at_promote;
+ total_files | replayed_since_redo | files_to_remove_at_promote
+-------------+---------------------+----------------------------
+         161 |                   1 |                        160
+(1 row)
+
+postgres=#  \! ls -lrt /u01/pgsql/attempt2/pg_wal | wc -l
+164
+postgres=# checkpoint;
+CHECKPOINT
+postgres=#  \! psql -c "checkpoint" -p 5432
+CHECKPOINT
+postgres=# checkpoint;
+CHECKPOINT
+postgres=# \! ls -lrt /u01/pgsql/attempt2/pg_wal | wc -l
+87
+postgres=#  SELECT
+    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') as total_files,
+    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as replayed_since_redo,
+    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') -
+    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as files_to_remove_at_promote;
+ total_files | replayed_since_redo | files_to_remove_at_promote
+-------------+---------------------+----------------------------
+          84 |                   1 |                         83
+(1 row)
+
+postgres=# \! /usr/pgsql-18/bin/pgbench -i -s 50 postgres -p 5432
+dropping old tables...
+creating tables...
+generating data (client-side)...
+vacuuming...
+creating primary keys...
+done in 18.60 s (drop tables 0.08 s, create tables 0.01 s, client-side generate 11.17 s, vacuum 2.05 s, primary keys 5.30 s).
+postgres=#  \! psql -c "checkpoint" -p 5432
+CHECKPOINT
+postgres=# checkpoint;
+CHECKPOINT
+postgres=# \! ls -lrt /u01/pgsql/attempt2/pg_wal | wc -l
+13
+postgres=#  SELECT
+    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') as total_files,
+    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as replayed_since_redo,
+    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') -
+    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as files_to_remove_at_promote;
+ total_files | replayed_since_redo | files_to_remove_at_promote
+-------------+---------------------+----------------------------
+          10 |                   1 |                          9
+(1 row)
+
+postgres=#
