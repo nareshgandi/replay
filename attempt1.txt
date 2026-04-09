@@ -1,24 +1,14 @@
 
-[postgres@lab03 log]$ psql -p 5433
-psql (18.1)
-Type "help" for help.
-
-postgres=#  SELECT
-    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') as total_files,
-    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as replayed_since_redo,
-    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') -
-    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as files_to_remove_at_promote;
- total_files | replayed_since_redo | files_to_remove_at_promote
--------------+---------------------+----------------------------
-         170 |                   9 |                        161
-(1 row)
-
+postgres=#
+postgres=#
 postgres=#  show max_wal_size;
  max_wal_size
 --------------
- 160MB
+ 10GB
 (1 row)
 
+postgres=# \! ls -lrt /u01/pgsql/attempt1/pg_wal | wc -l
+173
 postgres=#  SELECT
     (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') as total_files,
     ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as replayed_since_redo,
@@ -26,74 +16,233 @@ postgres=#  SELECT
     ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as files_to_remove_at_promote;
  total_files | replayed_since_redo | files_to_remove_at_promote
 -------------+---------------------+----------------------------
-         170 |                   9 |                        161
+         170 |                   0 |                        170
 (1 row)
 
-postgres=# checkpoint;
-CHECKPOINT
-postgres=# \! psql -c "checkpoint" -p 5432
-CHECKPOINT
-postgres=#  SELECT
-    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') as total_files,
-    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as replayed_since_redo,
-    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') -
-    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as files_to_remove_at_promote;
- total_files | replayed_since_redo | files_to_remove_at_promote
--------------+---------------------+----------------------------
-         170 |                   9 |                        161
-(1 row)
+postgres=# \q
+[postgres@lab03 attempt1]$
+[postgres@lab03 attempt1]$ time /usr/pgsql-18/bin/pg_ctl promote -D /u01/pgsql/attempt1
+waiting for server to promote.... done
+server promoted
 
-postgres=#  SELECT
-    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') as total_files,
-    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as replayed_since_redo,
-    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') -
-    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as files_to_remove_at_promote;
- total_files | replayed_since_redo | files_to_remove_at_promote
--------------+---------------------+----------------------------
-         161 |                   1 |                        160
-(1 row)
+real    0m0.209s
+user    0m0.000s
+sys     0m0.003s
+[postgres@lab03 attempt1]$
 
-postgres=#  \! ls -lrt /u01/pgsql/attempt2/pg_wal | wc -l
-164
-postgres=# checkpoint;
-CHECKPOINT
-postgres=#  \! psql -c "checkpoint" -p 5432
-CHECKPOINT
-postgres=# checkpoint;
-CHECKPOINT
-postgres=# \! ls -lrt /u01/pgsql/attempt2/pg_wal | wc -l
-87
-postgres=#  SELECT
-    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') as total_files,
-    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as replayed_since_redo,
-    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') -
-    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as files_to_remove_at_promote;
- total_files | replayed_since_redo | files_to_remove_at_promote
--------------+---------------------+----------------------------
-          84 |                   1 |                         83
-(1 row)
 
-postgres=# \! /usr/pgsql-18/bin/pgbench -i -s 50 postgres -p 5432
-dropping old tables...
-creating tables...
-generating data (client-side)...
-vacuuming...
-creating primary keys...
-done in 18.60 s (drop tables 0.08 s, create tables 0.01 s, client-side generate 11.17 s, vacuum 2.05 s, primary keys 5.30 s).
-postgres=#  \! psql -c "checkpoint" -p 5432
-CHECKPOINT
-postgres=# checkpoint;
-CHECKPOINT
-postgres=# \! ls -lrt /u01/pgsql/attempt2/pg_wal | wc -l
-13
-postgres=#  SELECT
-    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') as total_files,
-    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as replayed_since_redo,
-    (SELECT count(*) FROM pg_ls_dir('pg_wal') f WHERE f ~ '^[0-9A-F]{24}$') -
-    ceil((pg_last_wal_receive_lsn() - (SELECT redo_lsn FROM pg_control_checkpoint())) / 16777216.0)::int as files_to_remove_at_promote;
- total_files | replayed_since_redo | files_to_remove_at_promote
--------------+---------------------+----------------------------
-          10 |                   1 |                          9
-(1 row)
 
-postgres=#
+
+2026-04-09 18:26:14 IST [21093]: user=,db=,app=,client= DEBUG:  sending write 2/1B8C9BE0 flush 2/1B8C9BE0 apply 2/1B8C9BE0 (reply requested)
+2026-04-09 18:26:14 IST [21093]: user=,db=,app=,client= DEBUG:  sendtime 2026-04-09 18:26:14.232924+05:30 receipttime 2026-04-09 18:26:14.233966+05:30 replication apply delay (N/A) transfer latency 2 ms
+2026-04-09 18:26:14 IST [21099]: user=postgres,db=postgres,app=psql,client=[local] LOG:  disconnection: session time: 0:00:52.122 user=postgres database=postgres host=[local]
+2026-04-09 18:26:14 IST [21085]: user=,db=,app=,client= DEBUG:  releasing pm child slot 1
+2026-04-09 18:26:14 IST [21085]: user=,db=,app=,client= DEBUG:  client backend (PID 21099) exited with exit code 0
+2026-04-09 18:26:24 IST [21093]: user=,db=,app=,client= DEBUG:  sending write 2/1B8C9BE0 flush 2/1B8C9BE0 apply 2/1B8C9BE0
+2026-04-09 18:26:34 IST [21093]: user=,db=,app=,client= DEBUG:  sending write 2/1B8C9BE0 flush 2/1B8C9BE0 apply 2/1B8C9BE0
+2026-04-09 18:26:37 IST [21085]: user=,db=,app=,client= DEBUG:  postmaster received pmsignal signal
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= LOG:  received promote request
+2026-04-09 18:26:37 IST [21093]: user=,db=,app=,client= FATAL:  terminating walreceiver process due to administrator command
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  switched WAL source from stream to archive after failure
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  invalid record length at 2/1B8C9BE0: expected at least 24, got 0
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= LOG:  redo done at 2/1B8C9BA8 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 82.87 s
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  resetting unlogged relations: cleanup 0 init 1
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= LOG:  selected new timeline ID: 2
+2026-04-09 18:26:37 IST [21085]: user=,db=,app=,client= DEBUG:  releasing pm child slot 283
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  updated min recovery point to 2/1B8C9BE0 on timeline 1
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  could not remove file "pg_wal/00000002000000020000001B": No such file or directory
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= LOG:  archive recovery complete
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  MultiXactId wrap limit is 2147483648, limited by database with OID 1
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  MultiXact member stop limit is now 4294914944 based on MultiXact 1
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  attempting to remove WAL segments newer than log file 00000002000000020000001B
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  recycled write-ahead log file "00000001000000020000001D"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  recycled write-ahead log file "00000001000000020000001E"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  recycled write-ahead log file "00000001000000020000001F"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  recycled write-ahead log file "000000010000000200000020"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  recycled write-ahead log file "000000010000000200000021"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  recycled write-ahead log file "000000010000000200000022"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  recycled write-ahead log file "000000010000000200000023"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  recycled write-ahead log file "000000010000000200000024"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  recycled write-ahead log file "000000010000000200000025"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  recycled write-ahead log file "000000010000000200000026"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000027"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000028"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000029"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000002A"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000002B"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000002C"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000002D"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000002E"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000002F"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000030"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000031"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000032"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000033"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000034"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000035"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000036"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000037"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000038"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000039"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000003A"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000003B"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000003C"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000003D"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000003E"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000003F"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000040"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000041"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000042"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000043"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000044"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000045"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000046"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000047"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000048"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000049"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000004A"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000004B"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000004C"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000004D"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000004E"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000004F"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000050"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000051"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000052"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000053"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000054"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000055"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000056"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000057"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000058"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000059"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000005A"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000005B"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000005C"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000005D"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000005E"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000005F"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000060"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000061"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000062"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000063"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000064"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000065"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000066"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000067"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000068"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000069"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000006A"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000006B"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000006C"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000006D"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000006E"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000006F"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000070"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000071"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000072"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000073"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000074"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000075"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000076"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000077"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000078"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000079"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000007A"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000007B"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000007C"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000007D"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000001C"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000007E"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000007F"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000080"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000081"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000082"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000083"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000084"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000085"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000086"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000087"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000088"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000089"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000008A"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000008B"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000008C"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000008D"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000008E"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000008F"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000090"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000091"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000092"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000093"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000094"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000095"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000096"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000097"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000098"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "000000010000000200000099"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000009A"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000009B"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000009C"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000009D"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000009E"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "00000001000000020000009F"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000A0"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000A1"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000A2"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000A3"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000A4"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000A5"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000A6"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000A7"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000A8"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000A9"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000AA"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000AB"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000AC"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000AD"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000AE"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000AF"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000B0"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000B1"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000B2"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000B3"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000B4"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000B5"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000B6"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000B7"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000B8"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000B9"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000BA"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000BB"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000BC"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000BD"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000BE"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000BF"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000C0"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000C1"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000C2"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000C3"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  removing write-ahead log file "0000000100000002000000C4"
+2026-04-09 18:26:37 IST [21092]: user=,db=,app=,client= DEBUG:  release all standby locks
+2026-04-09 18:26:37 IST [21090]: user=,db=,app=,client= LOG:  checkpoint starting: force
+2026-04-09 18:26:37 IST [21090]: user=,db=,app=,client= DEBUG:  performing replication slot checkpoint
+2026-04-09 18:26:37 IST [21085]: user=,db=,app=,client= DEBUG:  releasing pm child slot 282
+2026-04-09 18:26:37 IST [21085]: user=,db=,app=,client= DEBUG:  updating PMState from PM_HOT_STANDBY to PM_RUN
+2026-04-09 18:26:37 IST [21085]: user=,db=,app=,client= LOG:  database system is ready to accept connections
+2026-04-09 18:26:37 IST [21085]: user=,db=,app=,client= DEBUG:  assigned pm child slot 285 for wal_writer
+2026-04-09 18:26:37 IST [21090]: user=,db=,app=,client= DEBUG:  checkpoint sync: number=1 file=pg_xact/0000 time=3.356 ms
+2026-04-09 18:26:37 IST [21085]: user=,db=,app=,client= DEBUG:  assigned pm child slot 221 for autovacuum launcher
+2026-04-09 18:26:37 IST [21168]: user=,db=,app=,client= DEBUG:  autovacuum launcher started
+2026-04-09 18:26:37 IST [21090]: user=,db=,app=,client= DEBUG:  checkpoint sync: number=2 file=pg_multixact/offsets/0000 time=2.296 ms
+2026-04-09 18:26:37 IST [21090]: user=,db=,app=,client= DEBUG:  snapshot of 0+0 running transaction ids (lsn 2/1B8C9C70 oldest xid 1487 latest complete 1486 next xid 1487)
+2026-04-09 18:26:37 IST [21085]: user=,db=,app=,client= DEBUG:  assigned pm child slot 247 for archiver
+2026-04-09 18:26:37 IST [21085]: user=,db=,app=,client= DEBUG:  assigned pm child slot 238 for bgworker
+2026-04-09 18:26:37 IST [21085]: user=,db=,app=,client= DEBUG:  starting background worker process "logical replication launcher"
+2026-04-09 18:26:37 IST [21171]: user=,db=,app=,client= DEBUG:  logical replication launcher started
+2026-04-09 18:26:37 IST [21090]: user=,db=,app=,client= DEBUG:  attempting to remove WAL segments older than log file 00000000000000020000001A
+2026-04-09 18:26:37 IST [21090]: user=,db=,app=,client= DEBUG:  SlruScanDirectory invoking callback on pg_subtrans/0000
+2026-04-09 18:26:37 IST [21090]: user=,db=,app=,client= LOG:  checkpoint complete: wrote 0 buffers (0.0%), wrote 3 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.002 s, sync=0.006 s, total=0.014 s; sync files=2, longest=0.004 s, average=0.003 s; distance=0 kB, estimate=0 kB; lsn=2/1B8C9C70, redo lsn=2/1B8C9C18
+2026-04-09 18:26:37 IST [21169]: user=,db=,app=,client= DEBUG:  archived write-ahead log file "00000002.history"
+2026-04-09 18:26:37 IST [21169]: user=,db=,app=,client= DEBUG:  archived write-ahead log file "00000001000000020000001B.partial"
+2026-04-09 18:26:37 IST [21091]: user=,db=,app=,client= DEBUG:  snapshot of 0+0 running transaction ids (lsn 2/1B8C9D20 oldest xid 1487 latest complete 1486 next xid 1487)
